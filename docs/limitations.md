@@ -62,8 +62,10 @@ building this.
 
 ## Operations
 
-- The Docker image is defined (`Dockerfile`, `docker-compose.yml`) but was not
-  built in this environment.
+- The Docker image and `docker-compose.yml` were built and run locally: the
+  stack migrates, passes its health checks and the browser checks, and
+  `scripts/verify-restore.sh` succeeds inside the container. They have not
+  been run on a cloud host behind a real domain and TLS.
 - Browser checks run in Chromium (desktop and a phone viewport); other
   browsers were not tested. There has been no formal WCAG audit.
 - The interface is English-only and has a light theme only.

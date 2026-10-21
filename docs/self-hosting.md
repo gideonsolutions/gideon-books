@@ -10,7 +10,7 @@ works without it.
 - Node.js 22 (or Docker), PostgreSQL 14 or newer (16 is what the images and CI use).
 - About 1 GB of memory for the application and worker together; more for large imports.
 - A directory (or an S3-compatible bucket) for attachments.
-- `pg_dump`/`pg_restore` matching the server's major version, for backups.
+- `pg_dump`/`pg_restore` matching the server's major version, for backups. The image ships the PostgreSQL 16 client; build with `--build-arg PG_MAJOR=17` (or your server's major version) for another server.
 
 ## Quick start with Docker Compose
 

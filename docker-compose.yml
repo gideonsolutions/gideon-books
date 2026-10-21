@@ -57,6 +57,9 @@ services:
     build: .
     restart: unless-stopped
     command: ["npx", "tsx", "scripts/worker.ts"]
+    # The image's health check probes the web server, which the worker does not run.
+    healthcheck:
+      disable: true
     env_file: .env
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-books}:${POSTGRES_PASSWORD:-books}@db:5432/${POSTGRES_DB:-books}
