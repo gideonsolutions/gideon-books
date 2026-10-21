@@ -1,0 +1,18 @@
+Gideon Books
+Copyright 2026 Gideon Solutions, LLC
+
+Licensed under the Apache License, Version 2.0 (see LICENSE). This applies to
+the source code in this repository written for Gideon Books.
+
+Exceptions — not covered by the Apache License:
+
+  public/brand/gideon-logo.svg, public/brand/gideon-logo.png
+    The Gideon mark, from the gideon-brand repository, is licensed under the
+    Gideon Christian Open Source License (GCOSL) 1.0 and is a trademark of
+    Gideon Solutions, LLC. Commercial use of the mark is reserved to Gideon
+    Solutions, LLC. If you run or distribute a modified version of Gideon
+    Books, replace these two files with your own mark (the application reads
+    them from public/brand/).
+
+Third-party packages installed from npm keep their own licenses; see each
+package's LICENSE file under node_modules/ (listed by `npm ls --all`).

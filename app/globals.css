@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+/*
+ * Gideon Books theme. Gideon Blue (#013ea9) is the brand color; Gideon Red
+ * (#d01326) is reserved for destructive and error states. Everything else is
+ * neutral so figures stay the loudest thing on the page.
+ */
+@theme {
+  --color-brand-50: #eef3fc;
+  --color-brand-100: #d9e4f8;
+  --color-brand-200: #b3c9f1;
+  --color-brand-500: #2459c4;
+  --color-brand-600: #013ea9;
+  --color-brand-700: #01348e;
+  --color-brand-800: #022a72;
+  --color-danger-50: #fdf0f1;
+  --color-danger-100: #fbdcdf;
+  --color-danger-600: #d01326;
+  --color-danger-700: #ad0f20;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: #f6f7f9;
+  color: #0f172a;
+  font-family: var(--font-sans);
+}
+
+/* Figures line up in columns. */
+.num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Keyboard focus is always visible. */
+:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+}
+
+/* Grid children may shrink below their content, so a wide table scrolls
+   inside its own box instead of widening the page. */
+.grid > * {
+  min-width: 0;
+}
+
+/* A scroll box must be the containing block of what it holds: an
+   absolutely positioned descendant (a screen-reader-only label in a table
+   heading) would otherwise be laid out against the page and widen it. */
+.overflow-x-auto,
+.overflow-auto {
+  position: relative;
+}

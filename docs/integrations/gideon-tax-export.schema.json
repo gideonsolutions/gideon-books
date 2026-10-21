@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gideonsolutions.us/schemas/gideon-books/tax-export/1.0.json",
+  "title": "Gideon Books tax export package",
+  "description": "One organization's books for one tax year, mapped to the lines of one return, with book-to-tax adjustments. See gideon-tax-export.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "formatVersion", "organization", "period", "basis", "returnType", "catalog", "mapping", "amountsAre", "categories", "accounts", "unmapped", "adjustments", "taxDepreciation", "totals", "review", "provenance"],
+  "$defs": {
+    "amount": { "type": "string", "pattern": "^-?\\d+(\\.\\d+)?$", "description": "Decimal string in the base currency." },
+    "date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "uuid": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" },
+    "kind": { "enum": ["income", "deduction", "cogs", "nondeductible", "nontaxable", "separately_stated"] }
+  },
+  "properties": {
+    "format": { "const": "gideon-books.tax-export" },
+    "formatVersion": { "const": "1.0" },
+    "organization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "legalName", "entityType", "country", "baseCurrency", "fiscalYearStartMonth"],
+      "properties": {
+        "id": { "$ref": "#/$defs/uuid" },
+        "name": { "type": "string" },
+        "legalName": { "type": ["string", "null"] },
+        "entityType": { "enum": ["sole_proprietorship", "partnership", "llc", "s_corporation", "c_corporation", "nonprofit", "trust", "estate", "other"] },
+        "country": { "type": "string", "minLength": 2, "maxLength": 2 },
+        "baseCurrency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "fiscalYearStartMonth": { "type": "integer", "minimum": 1, "maximum": 12 }
+      }
+    },
+    "period": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end"],
+      "properties": { "start": { "$ref": "#/$defs/date" }, "end": { "$ref": "#/$defs/date" } }
+    },
+    "basis": { "enum": ["accrual", "cash"] },
+    "returnType": { "enum": ["1120", "1120S", "1065", "schedule_c", "custom"] },
+    "catalog": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "taxYear", "package", "source"],
+      "properties": {
+        "name": { "type": "string" },
+        "taxYear": { "type": ["string", "null"] },
+        "package": { "type": ["string", "null"] },
+        "source": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["repository", "path", "commit", "read"],
+              "properties": { "repository": { "type": "string" }, "path": { "type": "string" }, "commit": { "type": "string" }, "read": { "$ref": "#/$defs/date" } }
+            }
+          ]
+        }
+      }
+    },
+    "mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["setVersion", "versionId"],
+      "properties": { "setVersion": { "type": "integer", "minimum": 1 }, "versionId": { "$ref": "#/$defs/uuid" } }
+    },
+    "amountsAre": { "type": "string" },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "line", "description", "kind", "origin", "bookAmount", "adjustments", "taxAmount", "accounts"],
+        "properties": {
+          "code": { "type": "string" },
+          "line": { "type": ["string", "null"] },
+          "description": { "type": "string" },
+          "kind": { "$ref": "#/$defs/kind" },
+          "origin": { "enum": ["catalog", "books", "custom"] },
+          "bookAmount": { "$ref": "#/$defs/amount" },
+          "adjustments": { "$ref": "#/$defs/amount" },
+          "taxAmount": { "$ref": "#/$defs/amount" },
+          "accounts": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "accounts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "code", "name", "type", "subtype", "dimension", "ledgerAmount", "categoryCode", "mappingConfirmed"],
+        "properties": {
+          "id": { "$ref": "#/$defs/uuid" },
+          "code": { "type": "string" },
+          "name": { "type": "string" },
+          "type": { "enum": ["income", "expense"] },
+          "subtype": { "type": "string" },
+          "dimension": { "type": ["string", "null"], "description": "kind:valueId when the mapping applies to one dimension value" },
+          "ledgerAmount": { "$ref": "#/$defs/amount" },
+          "categoryCode": { "type": ["string", "null"] },
+          "mappingConfirmed": { "type": "boolean" }
+        }
+      }
+    },
+    "unmapped": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "code", "name", "ledgerAmount"],
+        "properties": { "id": { "$ref": "#/$defs/uuid" }, "code": { "type": "string" }, "name": { "type": "string" }, "ledgerAmount": { "$ref": "#/$defs/amount" } }
+      }
+    },
+    "adjustments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "categoryCode", "kind", "amount", "description", "source", "sourceRef"],
+        "properties": {
+          "id": { "$ref": "#/$defs/uuid" },
+          "categoryCode": { "type": "string" },
+          "kind": { "enum": ["permanent", "temporary"] },
+          "amount": { "$ref": "#/$defs/amount" },
+          "description": { "type": "string" },
+          "source": { "enum": ["manual", "depreciation", "meals_limitation", "other"] },
+          "sourceRef": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "taxDepreciation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["available", "assets"],
+      "properties": {
+        "available": { "type": "boolean" },
+        "assets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["assetId", "assetName", "bookDepreciation", "taxDepreciation", "difference"],
+            "properties": {
+              "assetId": { "$ref": "#/$defs/uuid" },
+              "assetName": { "type": "string" },
+              "bookDepreciation": { "$ref": "#/$defs/amount" },
+              "taxDepreciation": { "$ref": "#/$defs/amount" },
+              "difference": { "$ref": "#/$defs/amount" }
+            }
+          }
+        }
+      }
+    },
+    "totals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bookNetIncome", "taxableIncomeBeforeSpecialItems"],
+      "properties": { "bookNetIncome": { "$ref": "#/$defs/amount" }, "taxableIncomeBeforeSpecialItems": { "$ref": "#/$defs/amount" } }
+    },
+    "review": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "by", "at", "current"],
+          "properties": { "status": { "enum": ["reviewed", "approved"] }, "by": { "type": "string" }, "at": { "type": "string", "format": "date-time" }, "current": { "type": "boolean" } }
+        }
+      ]
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["application", "applicationVersion", "sourceHash", "contentHash", "entryCount", "lastEntryNumber", "generatedAt", "generatedBy"],
+      "properties": {
+        "application": { "const": "Gideon Books" },
+        "applicationVersion": { "type": "string" },
+        "sourceHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "contentHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "entryCount": { "type": "integer", "minimum": 0 },
+        "lastEntryNumber": { "type": ["integer", "null"] },
+        "generatedAt": { "type": "string", "format": "date-time" },
+        "generatedBy": { "type": "string" }
+      }
+    }
+  }
+}

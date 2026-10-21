@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: books
+          POSTGRES_PASSWORD: books
+          POSTGRES_DB: books
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U books"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgres://books:books@localhost:5432/postgres
+      DATABASE_URL: postgres://books:books@localhost:5432/books
+      TEST_SCHEMA_SOURCE: migrations
+      BOOKS_ENCRYPTION_KEY: ci-only-key-0123456789abcdef0123456789abcdef
+      APP_URL: http://localhost:3200
+      PG_BIN: /usr/lib/postgresql/16/bin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: PostgreSQL 16 client tools (backup/restore test)
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client-16
+      - run: npm ci
+      - name: Audit dependencies
+        # Runtime dependencies; dev-only tools (linters, migration generator) are reported but not gating.
+        run: npm audit --omit=dev --audit-level=high
+      - name: Type check
+        run: npx tsc --noEmit
+      - name: Lint
+        run: npm run lint
+      - name: Test
+        run: npx vitest run
+      - name: Build
+        run: npm run build
+      - name: Migrations apply cleanly
+        run: npx tsx scripts/migrate.ts
+      - name: Browser checks of the main workflows
+        run: |
+          npx playwright install --with-deps chromium
+          npm run start > /tmp/server.log 2>&1 &
+          for i in $(seq 1 60); do curl -fs http://localhost:3200/api/health/ready >/dev/null && break; sleep 2; done
+          npx playwright test
+      - name: Browser check report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+            /tmp/server.log
+      - name: Verified restore of the migrated database
+        run: bash scripts/verify-restore.sh
+      # The schema and the migrations on disk must agree: a schema edit with
+      # no generated migration fails here, not in production.
+      - name: Migration matches schema
+        run: |
+          npx drizzle-kit generate --name ci-check >/dev/null 2>&1 || true
+          if git status --porcelain lib/db/migrations | grep -q .; then
+            echo "::error::lib/db/schema has changes with no migration. Run npm run db:generate (or scripts/regen-migrations.sh before 1.0)."
+            git status --porcelain lib/db/migrations
+            exit 1
+          fi

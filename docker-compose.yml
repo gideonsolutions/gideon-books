@@ -1,0 +1,72 @@
+# Self-hosted Gideon Books: the application, its background worker, and
+# PostgreSQL. `docker compose up -d` then open http://localhost:3200.
+# Configuration is read from .env (see .env.example and docs/self-hosting.md).
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-books}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-books}
+      POSTGRES_DB: ${POSTGRES_DB:-books}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-books}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "127.0.0.1:${DB_PORT:-54329}:5432"
+
+  migrate:
+    image: ${BOOKS_IMAGE:-gideon-books:local}
+    build: .
+    command: ["npx", "tsx", "scripts/migrate.ts"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-books}:${POSTGRES_PASSWORD:-books}@db:5432/${POSTGRES_DB:-books}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    image: ${BOOKS_IMAGE:-gideon-books:local}
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-books}:${POSTGRES_PASSWORD:-books}@db:5432/${POSTGRES_DB:-books}
+      STORAGE_DIR: /data/storage
+    volumes:
+      - storage:/data/storage
+    ports:
+      - "${APP_PORT:-3200}:3200"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3200/api/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    image: ${BOOKS_IMAGE:-gideon-books:local}
+    build: .
+    restart: unless-stopped
+    command: ["npx", "tsx", "scripts/worker.ts"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-books}:${POSTGRES_PASSWORD:-books}@db:5432/${POSTGRES_DB:-books}
+      STORAGE_DIR: /data/storage
+    volumes:
+      - storage:/data/storage
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  db-data:
+  storage:
