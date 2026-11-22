@@ -60,6 +60,14 @@ Stripe's retry processes it again.
 This is the platform charging for the hosted service. It is unrelated to the
 payment providers an organization connects to collect from its own customers.
 
+## How Gideon Solutions plans to run it
+
+[hosting-gideon.md](hosting-gideon.md) is the plan for the hosted offering
+Gideon Solutions would operate. It covers where it runs and what that costs,
+what the code still lacks before it can hold other businesses' books, and
+the launch price recommendation. [GO-LIVE-HOSTED.md](GO-LIVE-HOSTED.md) is
+the ordered checklist. Neither has been carried out.
+
 ## Not verified here
 
 The Stripe Billing calls are implemented against Stripe's documented API but
